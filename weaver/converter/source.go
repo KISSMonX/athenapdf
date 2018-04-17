@@ -1,13 +1,14 @@
 package converter
 
 import (
-	"golang.org/x/net/publicsuffix"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
 	"path/filepath"
+
+	"golang.org/x/net/publicsuffix"
 )
 
 // ConversionSource contains the target resource path, and its MIME type.
@@ -157,8 +158,15 @@ func setCustomExtension(s *ConversionSource, ext string) error {
 // of bytes. If both parameters are specified, the reader takes precedence.
 // The ConversionSource is prepared using one of two strategies: a local
 // conversion (see rawSource) or a remote conversion (see uriSource).
-func NewConversionSource(uri string, body io.Reader, ext string) (*ConversionSource, error) {
+func NewConversionSource(url, token string, body io.Reader, ext string) (*ConversionSource, error) {
 	s := new(ConversionSource)
+
+	var uri string
+	if token != "" {
+		uri = url + "&SMM_auth_token=" + token
+	} else {
+		uri = url
+	}
 
 	var err error
 	if body != nil {

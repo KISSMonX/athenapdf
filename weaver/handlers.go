@@ -2,6 +2,11 @@ package main
 
 import (
 	"errors"
+	"log"
+	"net/http"
+	"os"
+	"runtime"
+
 	"github.com/arachnys/athenapdf/weaver/converter"
 	"github.com/arachnys/athenapdf/weaver/converter/athenapdf"
 	"github.com/arachnys/athenapdf/weaver/converter/cloudconvert"
@@ -9,10 +14,6 @@ import (
 	"github.com/getsentry/raven-go"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/alexcesaro/statsd.v2"
-	"log"
-	"net/http"
-	"os"
-	"runtime"
 )
 
 var (
@@ -135,6 +136,7 @@ func convertByURLHandler(c *gin.Context) {
 	r, ravenOk := c.Get("sentry")
 
 	url := c.Query("url")
+	token := c.Query("token")
 	if url == "" {
 		c.AbortWithError(http.StatusBadRequest, ErrURLInvalid).SetType(gin.ErrorTypePublic)
 		s.Increment("invalid_url")
@@ -143,7 +145,7 @@ func convertByURLHandler(c *gin.Context) {
 
 	ext := c.Query("ext")
 
-	source, err := converter.NewConversionSource(url, nil, ext)
+	source, err := converter.NewConversionSource(url, token, nil, ext)
 	if err != nil {
 		s.Increment("conversion_error")
 		if ravenOk {
@@ -169,7 +171,7 @@ func convertByFileHandler(c *gin.Context) {
 
 	ext := c.Query("ext")
 
-	source, err := converter.NewConversionSource("", file, ext)
+	source, err := converter.NewConversionSource("", "", file, ext)
 	if err != nil {
 		s.Increment("conversion_error")
 		if ravenOk {

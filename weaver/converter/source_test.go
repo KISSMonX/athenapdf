@@ -2,7 +2,6 @@ package converter
 
 import (
 	"bytes"
-	"github.com/arachnys/athenapdf/weaver/testutil"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -10,6 +9,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/arachnys/athenapdf/weaver/testutil"
 )
 
 func expectLocalConversion(t *testing.T, s *ConversionSource, uri string, mime string, data []byte) {
@@ -258,7 +259,7 @@ func TestNewConversionSource(t *testing.T) {
 	mockURI := "http://this-should-not-be-used"
 	mockData := "<!DOCTYPE HTML>"
 	mockReader := strings.NewReader(mockData)
-	s, err := NewConversionSource(mockURI, mockReader, "")
+	s, err := NewConversionSource(mockURI, "", mockReader, "")
 	if err != nil {
 		t.Fatalf("newconversionsource returned an unexpected error: %+v", err)
 	}
@@ -268,7 +269,7 @@ func TestNewConversionSource(t *testing.T) {
 func TestNewConversionSource_remote(t *testing.T) {
 	ts := testutil.MockHTTPServer("", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>", false)
 	defer ts.Close()
-	s, err := NewConversionSource(ts.URL, nil, "")
+	s, err := NewConversionSource(ts.URL, "", nil, "")
 	if err != nil {
 		t.Fatalf("newconversionsource returned an unexpected error: %+v", err)
 	}
@@ -276,7 +277,7 @@ func TestNewConversionSource_remote(t *testing.T) {
 }
 
 func TestNewConversionSource_invalidURL(t *testing.T) {
-	s, err := NewConversionSource("http://invalid-url", nil, "")
+	s, err := NewConversionSource("http://invalid-url", "", nil, "")
 	if err == nil {
 		t.Fatalf("expected error to be returned")
 	}
