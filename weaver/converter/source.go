@@ -161,6 +161,7 @@ func setCustomExtension(s *ConversionSource, ext string) error {
 func NewConversionSource(url, token string, body io.Reader, ext string) (*ConversionSource, error) {
 	s := new(ConversionSource)
 
+	// 支持 token 访问, 也可以无 token 访问
 	var uri string
 	if token != "" {
 		uri = url + "&SMM_auth_token=" + token

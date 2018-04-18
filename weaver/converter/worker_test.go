@@ -27,6 +27,15 @@ func (c TestConversion) Convert(s ConversionSource, done <-chan struct{}) ([]byt
 	return []byte("test work"), nil
 }
 
+func (c TestConversion) UploadAWSS3(b []byte) (bool, error) {
+	return true, nil
+}
+
+func (c TestConversion) UploadQiniu(b []byte) (bool, string, error) {
+
+	return true, "www.ok.com", nil
+}
+
 func TestNewWork(t *testing.T) {
 	wq := InitWorkers(10, 10, 10)
 	c := TestConversion{}
@@ -50,8 +59,13 @@ type TestConversionUpload struct {
 	Conversion
 }
 
-func (c TestConversionUpload) Upload(b []byte) (bool, error) {
+func (c TestConversionUpload) UploadAWSS3(b []byte) (bool, error) {
 	return true, nil
+}
+
+func (c TestConversionUpload) UploadQiniu(b []byte) (bool, string, error) {
+
+	return true, "www.ok.com", nil
 }
 
 func TestNewWork_upload(t *testing.T) {
@@ -79,6 +93,15 @@ func (c TestConversionError) Convert(s ConversionSource, done <-chan struct{}) (
 	return []byte{}, ErrTestConversionError
 }
 
+func (c TestConversionError) UploadAWSS3(b []byte) (bool, error) {
+	return true, nil
+}
+
+func (c TestConversionError) UploadQiniu(b []byte) (bool, string, error) {
+
+	return true, "www.ok.com", nil
+}
+
 func TestNewWork_error(t *testing.T) {
 	wq := InitWorkers(10, 10, 10)
 	defer close(wq)
@@ -99,6 +122,15 @@ type TestConversionTimeout struct {
 func (c TestConversionTimeout) Convert(s ConversionSource, done <-chan struct{}) ([]byte, error) {
 	time.Sleep(time.Second * 2)
 	return []byte("test work timeout"), nil
+}
+
+func (c TestConversionTimeout) UploadAWSS3(b []byte) (bool, error) {
+	return true, nil
+}
+
+func (c TestConversionTimeout) UploadQiniu(b []byte) (bool, string, error) {
+
+	return true, "www.ok.com", nil
 }
 
 func TestNewWork_timeout(t *testing.T) {

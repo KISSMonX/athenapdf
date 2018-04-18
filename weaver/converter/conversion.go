@@ -15,9 +15,16 @@ func (c Conversion) Convert(s ConversionSource, done <-chan struct{}) ([]byte, e
 	return []byte{}, nil
 }
 
-// Upload should take a byte slice, and return a boolean indicating if the data
+// UploadAWSS3 should take a byte slice, and return a boolean indicating if the data
 // was used for post-processing, e.g. uploading to a remote host like S3.
 // It should always return false if there is an error.
-func (c Conversion) Upload(b []byte) (bool, error) {
+func (c Conversion) UploadAWSS3(b []byte) (bool, error) {
 	return false, nil
+}
+
+// UploadQiniu should take a byte slice, and return a boolean indicating if the data
+// was used for post-processing, e.g. uploading to a remote host like S3.
+// It should always return false if there is an error.
+func (c Conversion) UploadQiniu(b []byte) (bool, string, error) {
+	return false, "", nil
 }

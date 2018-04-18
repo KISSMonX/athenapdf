@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"strconv"
+
+	"github.com/smmit/smmbase/logger"
 )
 
 // CloudConvert configuration.
@@ -76,7 +78,7 @@ func NewEnvConfig() Config {
 	conf := Config{
 		CloudConvert:       cloudconvert,
 		HTTPAddr:           ":8080",
-		AuthKey:            "arachnys-weaver",
+		AuthKey:            "smm-pdfcenter",
 		AthenaCMD:          "athenapdf -S",
 		MaxWorkers:         10,
 		MaxConversionQueue: 50,
@@ -144,6 +146,8 @@ func NewEnvConfig() Config {
 	if sentryDSN := os.Getenv("SENTRY_DSN"); sentryDSN != "" {
 		conf.SentryDSN = sentryDSN
 	}
+
+	logger.Debugf("PDF 转换服务基础配置: %+v", conf)
 
 	return conf
 }

@@ -4,29 +4,33 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/arachnys/athenapdf/weaver/converter"
-	"github.com/satori/go.uuid"
 	"io"
 	"io/ioutil"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/arachnys/athenapdf/weaver/converter"
+	"github.com/satori/go.uuid"
+	"github.com/smmit/smmbase/logger"
 )
 
+// CloudConvert 在线转换?
 type CloudConvert struct {
 	converter.UploadConversion
 	Client
 }
 
+// Client 配置
 type Client struct {
 	BaseURL string
 	APIKey  string
 }
 
+// Process 处理配置
 type Process struct {
 	ID      string `json:"id,omitempty"`
 	URL     string `json:"url"`
@@ -35,6 +39,7 @@ type Process struct {
 	Minutes int    `json:"minutes,omitempty"`
 }
 
+// S3 配置
 type S3 struct {
 	AccessKey    string `json:"accesskeyid"`
 	AccessSecret string `json:"secretaccesskey"`
@@ -43,10 +48,12 @@ type S3 struct {
 	ACL          string `json:"acl"`
 }
 
+// Output 输出格式
 type Output struct {
 	S3 `json:"s3"`
 }
 
+// Conversion 转换器
 type Conversion struct {
 	Input        string `json:"input"`
 	File         string `json:"file"`
@@ -57,6 +64,7 @@ type Conversion struct {
 	*Output      `json:"output,omitempty"`
 }
 
+// QuickConversion 快速转换
 func (c Client) QuickConversion(path string, awsS3 converter.AWSS3, inputFormat string, outputFormat string) ([]byte, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -108,7 +116,7 @@ func (c Client) QuickConversion(path string, awsS3 converter.AWSS3, inputFormat 
 		if err = json.NewDecoder(res.Body).Decode(&data); err != nil {
 			return nil, err
 		}
-		return nil, fmt.Errorf("[CloudConvert] did not receive HTTP 200, response: %+v\n", data)
+		return nil, fmt.Errorf("[CloudConvert] did not receive HTTP 200, response: %+v", data)
 	}
 
 	o, err := ioutil.ReadAll(res.Body)
@@ -119,6 +127,7 @@ func (c Client) QuickConversion(path string, awsS3 converter.AWSS3, inputFormat 
 	return o, nil
 }
 
+// NewProcess 新建处理
 func (c Client) NewProcess(inputFormat, ouputFormat string) (Process, error) {
 	process := Process{}
 	res, err := http.PostForm(
@@ -141,7 +150,7 @@ func (c Client) NewProcess(inputFormat, ouputFormat string) (Process, error) {
 		if err = json.NewDecoder(res.Body).Decode(&data); err != nil {
 			return process, err
 		}
-		return process, fmt.Errorf("[CloudConvert] did not receive HTTP 200, response: %+v\n", data)
+		return process, fmt.Errorf("[CloudConvert] did not receive HTTP 200, response: %+v", data)
 	}
 
 	err = json.NewDecoder(res.Body).Decode(&process)
@@ -152,6 +161,7 @@ func (c Client) NewProcess(inputFormat, ouputFormat string) (Process, error) {
 	return process, err
 }
 
+// StartConversion 开始转换
 func (p Process) StartConversion(c Conversion) ([]byte, error) {
 	b, err := json.Marshal(&c)
 	if err != nil {
@@ -170,7 +180,7 @@ func (p Process) StartConversion(c Conversion) ([]byte, error) {
 		if err = json.NewDecoder(res.Body).Decode(&data); err != nil {
 			return nil, err
 		}
-		return nil, fmt.Errorf("[CloudConvert] did not receive HTTP 200, response: %+v\n", data)
+		return nil, fmt.Errorf("[CloudConvert] did not receive HTTP 200, response: %+v", data)
 	}
 
 	if c.Download == "inline" {
@@ -184,8 +194,9 @@ func (p Process) StartConversion(c Conversion) ([]byte, error) {
 	return nil, nil
 }
 
+// Convert 执行转换
 func (c CloudConvert) Convert(s converter.ConversionSource, done <-chan struct{}) ([]byte, error) {
-	log.Printf("[CloudConvert] converting to PDF: %s\n", s.GetActualURI())
+	logger.Debugf("[CloudConvert] converting to PDF: %s\n", s.GetActualURI())
 
 	var b []byte
 
@@ -228,7 +239,7 @@ func (c CloudConvert) Convert(s converter.ConversionSource, done <-chan struct{}
 				"public-read",
 			},
 		}
-		log.Printf("[CloudConvert] uploading conversion to S3: %s\n", c.AWSS3.S3Key)
+		logger.Debugf("[CloudConvert] uploading conversion to S3: %s\n", c.AWSS3.S3Key)
 	}
 
 	b, err = p.StartConversion(conv)
@@ -239,13 +250,14 @@ func (c CloudConvert) Convert(s converter.ConversionSource, done <-chan struct{}
 	return b, nil
 }
 
+// Upload 云端上传??
 func (c CloudConvert) Upload(b []byte) (bool, error) {
 	if c.AWSS3.S3Bucket == "" || c.AWSS3.S3Key == "" {
 		return false, nil
 	}
 
 	if b != nil {
-		if _, err := c.UploadConversion.Upload(b); err != nil {
+		if _, err := c.UploadConversion.UploadAWSS3(b); err != nil {
 			return false, err
 		}
 	}

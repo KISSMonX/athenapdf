@@ -5,7 +5,7 @@ import (
 )
 
 func expectUploadToHalt(t *testing.T, mockConversion UploadConversion) {
-	got, err := mockConversion.Upload([]byte{})
+	got, err := mockConversion.UploadAWSS3([]byte{})
 	if err != nil {
 		t.Fatalf("upload returned an unexpected error: %+v", err)
 	}

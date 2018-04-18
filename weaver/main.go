@@ -4,11 +4,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/DeanThompson/ginpprof"
 	"github.com/arachnys/athenapdf/weaver/converter"
 	"github.com/getsentry/raven-go"
 	"github.com/gin-gonic/contrib/sentry"
 	"github.com/gin-gonic/gin"
+	"github.com/smmit/smmbase/monitor"
 	"gopkg.in/alexcesaro/statsd.v2"
 )
 
@@ -43,7 +43,7 @@ func InitMiddleware(router *gin.Engine, conf Config) {
 	}
 	router.Use(StatsdMiddleware(s))
 
-	// Sentry (crash reporting)
+	// Sentry (崩溃报告)
 	if !gin.IsDebugging() && conf.SentryDSN != "" {
 		r, err := raven.New(conf.SentryDSN)
 		if err != nil {
@@ -67,14 +67,12 @@ func InitSecureRoutes(router *gin.Engine, conf Config) {
 }
 
 // InitSimpleRoutes creates non-essential routes for monitoring and/or
-// debugging.
+// debugging. 监控和调试使用的接口
 func InitSimpleRoutes(router *gin.Engine, conf Config) {
 	router.GET("/", indexHandler)
 	router.GET("/stats", statsHandler)
 
-	if gin.IsDebugging() {
-		ginpprof.Wrapper(router)
-	}
+	monitor.GinWrap(router)
 }
 
 func main() {

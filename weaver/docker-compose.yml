@@ -1,6 +1,6 @@
 static:
-  image: arachnysdocker/athenapdf-service
+  image: smmdocker/athenapdf-service
   ports:
     - "8080:8080"
   env_file:
-    - ./conf/sample.env
+    - ./conf/config.env
