@@ -1,14 +1,21 @@
 package converter
 
 import (
+	"bytes"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/cookiejar"
 	"os"
 	"path/filepath"
+	"time"
 
-	"golang.org/x/net/publicsuffix"
+	log "github.com/qiniu/x/log.v7"
+)
+
+const (
+	DOMAIN_ANHUIDA = ".anhuida.com"
+	DOMAIN_SMM     = ".smm.cn"
+	COOKIE_KEY     = "SMM_auth_token"
 )
 
 // ConversionSource contains the target resource path, and its MIME type.
@@ -98,33 +105,63 @@ func rawSource(s *ConversionSource, body io.Reader) error {
 	return nil
 }
 
+func cookieString(cookie *http.Cookie) string {
+	var b bytes.Buffer
+	b.WriteString(cookie.Name)
+	b.WriteString("=")
+	b.WriteString(cookie.Value)
+	b.WriteString("; expires=" + cookie.Expires.Format(http.TimeFormat))
+	b.WriteString("; domain=" + cookie.Domain)
+	b.WriteString("; path=" + cookie.Path)
+	b.WriteString(";")
+	return b.String()
+}
+
+// Cookies 生成[]*http.Cookie
+func Cookies(key, value, domain string, date ...time.Time) *http.Cookie {
+	expires := time.Now()
+	if len(date) > 0 {
+		expires = date[0]
+	}
+	return &http.Cookie{
+		Name:    key,
+		Value:   value,
+		Domain:  domain,
+		Expires: expires,
+		Path:    "/",
+	}
+}
+
 // uriSource is a remote conversion strategy handler. It will attempt to fetch
 // the remote URI to determine: if it is accessible; its mime type; and
 // if it needs pre-processing (e.g. `octet-stream`).
-func uriSource(s *ConversionSource, uri string) error {
+func uriSource(s *ConversionSource, uri, token, key, domain string) error {
 	// Fetch URL with support for cookies (to handle session-based redirects)
-	opts := cookiejar.Options{PublicSuffixList: publicsuffix.List}
-	jar, err := cookiejar.New(&opts)
+	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
-		return err
+		log.Error(err)
 	}
-	client := http.Client{Jar: jar}
-	res, err := client.Get(uri)
+
+	cookie := Cookies(key, token, domain)
+	req.AddCookie(cookie)
+
+	var client = &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		log.Error(err)
 	}
-	if res != nil {
-		defer res.Body.Close()
+	if resp != nil {
+		defer resp.Body.Close()
 	}
 
 	// Save content locally (temporarily) if the HTTP header indicates that it
 	// is a binary stream.
 	// TODO: file restrictions / limits (e.g. size)
-	if res.Header.Get("Content-Type") == "application/octet-stream" {
+	if resp.Header.Get("Content-Type") == "application/octet-stream" {
 		// Set the OriginalURI as we are running a local conversion strategy
 		s.OriginalURI = uri
 		// Pipe HTTP response body to a temporary file via io.Reader
-		if rawSource(s, res.Body) != nil {
+		if rawSource(s, resp.Body) != nil {
 			return err
 		}
 	} else {
@@ -132,7 +169,7 @@ func uriSource(s *ConversionSource, uri string) error {
 		s.URI = uri
 		// Read the first 512 bytes of the page contents into a temporary buffer
 		// so that we can determine the content type
-		t, err := readerContentType(res.Body)
+		t, err := readerContentType(resp.Body)
 		if err != nil {
 			return err
 		}
@@ -158,22 +195,14 @@ func setCustomExtension(s *ConversionSource, ext string) error {
 // of bytes. If both parameters are specified, the reader takes precedence.
 // The ConversionSource is prepared using one of two strategies: a local
 // conversion (see rawSource) or a remote conversion (see uriSource).
-func NewConversionSource(url, token string, body io.Reader, ext string) (*ConversionSource, error) {
+func NewConversionSource(uri, token, key, domain string, body io.Reader, ext string) (*ConversionSource, error) {
 	s := new(ConversionSource)
-
-	// 支持 token 访问, 也可以无 token 访问
-	var uri string
-	if token != "" {
-		uri = url + "&SMM_auth_token=" + token
-	} else {
-		uri = url
-	}
 
 	var err error
 	if body != nil {
 		err = rawSource(s, body)
 	} else {
-		err = uriSource(s, uri)
+		err = uriSource(s, uri, token, key, domain)
 	}
 
 	if err != nil {

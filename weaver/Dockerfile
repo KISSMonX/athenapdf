@@ -1,5 +1,5 @@
-FROM smmdocker/athenapdf-cli
-LABEL MAINTAINER="MingH <houming@smm.cn>"
+FROM arachnysdocker/athenapdf
+MAINTAINER Arachnys <techteam@arachnys.com>
 
 ENV GIN_MODE release
 
@@ -18,6 +18,6 @@ COPY conf/ /athenapdf-service/conf/
 
 EXPOSE 8080
 
-CMD ["dumb-init", "pdfcenter"]
+CMD ["dumb-init", "weaver"]
 
 ENTRYPOINT ["/athenapdf-service/conf/entrypoint.sh"]

@@ -1,5 +1,6 @@
-FROM golang:1.10.1
-LABEL MAINTAINER="MingH <houming@smm.cn>"
+
+FROM golang:1.10.1-alpine
+MAINTAINER Arachnys <techteam@arachnys.com>
 
 RUN apk add --update git
 
@@ -9,6 +10,6 @@ WORKDIR /go/src/github.com/arachnys/athenapdf/weaver
 RUN \
   go get -v -d \
   && go install -v \
-  && CGO_ENABLED=0 go build -ldflags "-s" -a -installsuffix cgo -o pdfcenter .
+  && CGO_ENABLED=0 go build -ldflags "-s" -a -installsuffix cgo -o weaver .
 
 CMD ["/bin/sh"]

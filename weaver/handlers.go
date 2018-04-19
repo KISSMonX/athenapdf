@@ -20,7 +20,9 @@ var (
 	// ErrURLInvalid should be returned when a conversion URL is invalid.
 	ErrURLInvalid = errors.New("invalid URL provided")
 	// ErrFileInvalid should be returned when a conversion file is invalid.
-	ErrFileInvalid = errors.New("invalid file provided")
+	ErrFileInvalid   = errors.New("invalid file provided")
+	ErrDomainInvalid = errors.New("invalid domain provided")
+	ErrKeyInvalid    = errors.New("invalid Key provided")
 )
 
 // indexHandler returns a JSON string indicating that the microservice is online.
@@ -166,11 +168,25 @@ func convertByURLHandler(c *gin.Context) {
 		return
 	}
 
+	domain := c.Query("domain")
+	if domain == "" {
+		c.AbortWithError(http.StatusBadRequest, ErrDomainInvalid).SetType(gin.ErrorTypePublic)
+		s.Increment("invalid_domain")
+		return
+	}
+
+	key := c.Query("key")
+	if key == "" {
+		c.AbortWithError(http.StatusBadRequest, ErrKeyInvalid).SetType(gin.ErrorTypePublic)
+		s.Increment("invalid_key")
+		return
+	}
+
 	ext := c.Query("ext")
 
-	log.Printf("输入参数 url: %s  token: %s  扩展名: %s\n", url, token, ext)
+	log.Printf("输入参数 url: %s  token: %s  扩展名: %s  域名: %s  TokenKey: %s\n", url, token, ext, domain, key)
 
-	source, err := converter.NewConversionSource(url, token, nil, ext)
+	source, err := converter.NewConversionSource(url, token, key, domain, nil, ext)
 	if err != nil {
 		s.Increment("conversion_error")
 		if ravenOk {
@@ -198,7 +214,7 @@ func convertByFileHandler(c *gin.Context) {
 
 	log.Printf("输入参数 filename: %s  大小: %d  扩展名: %s\n", header.Filename, header.Size, ext)
 
-	source, err := converter.NewConversionSource("", "", file, ext)
+	source, err := converter.NewConversionSource("", "", "", "", file, ext)
 	if err != nil {
 		s.Increment("conversion_error")
 		if ravenOk {

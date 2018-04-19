@@ -81,22 +81,22 @@ func (w Work) Process(timeout int) {
 		}
 
 		// 七牛上传只需要返回给前端 URL 就好了, 不用自动弹出下载框
-		uploaded, url, err := w.converter.UploadQiniu(out)
-		if err != nil {
-			werr <- err
-			return
-		}
+		// uploaded, url, err := w.converter.UploadQiniu(out)
+		// if err != nil {
+		// 	werr <- err
+		// 	return
+		// }
 
-		if uploaded {
-			close(w.uploaded)
-			return
-		}
+		// if uploaded {
+		// 	close(w.uploaded)
+		// 	return
+		// }
 
-		log.Println("七牛返回链接: ", url)
+		// log.Println("七牛返回链接: ", url)
 
 		// 原始返回的是字节数组, 七牛的话, 只返回链接即可
-		// wout <- out
-		wurl <- url
+		wout <- out
+		// wurl <- url
 	}(w, done, wout, werr)
 
 	select {
