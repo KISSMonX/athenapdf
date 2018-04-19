@@ -5,10 +5,11 @@ import (
 	"time"
 
 	"github.com/arachnys/athenapdf/weaver/converter"
+
+	"github.com/DeanThompson/ginpprof"
 	"github.com/getsentry/raven-go"
 	"github.com/gin-gonic/contrib/sentry"
 	"github.com/gin-gonic/gin"
-	"github.com/smmit/smmbase/monitor"
 	"gopkg.in/alexcesaro/statsd.v2"
 )
 
@@ -72,7 +73,10 @@ func InitSimpleRoutes(router *gin.Engine, conf Config) {
 	router.GET("/", indexHandler)
 	router.GET("/stats", statsHandler)
 
-	monitor.GinWrap(router)
+	if gin.IsDebugging() {
+		// monitor.GinWrap(router)
+		ginpprof.Wrapper(router)
+	}
 }
 
 func main() {

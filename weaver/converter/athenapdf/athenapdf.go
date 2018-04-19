@@ -1,11 +1,11 @@
 package athenapdf
 
 import (
+	"log"
 	"strings"
 
 	"github.com/arachnys/athenapdf/weaver/converter"
 	"github.com/arachnys/athenapdf/weaver/gcmd"
-	"github.com/smmit/smmbase/logger"
 )
 
 // AthenaPDF represents a conversion job for athenapdf CLI.
@@ -43,7 +43,7 @@ func constructCMD(base string, path string, aggressive bool) []string {
 // using athenapdf CLI.
 // See the Convert method for Conversion for more information.
 func (c AthenaPDF) Convert(s converter.ConversionSource, done <-chan struct{}) ([]byte, error) {
-	logger.Debugf("[AthenaPDF] converting to PDF: %s\n", s.GetActualURI())
+	log.Printf("[AthenaPDF] converting to PDF: %s\n", s.GetActualURI())
 
 	// Construct the command to execute
 	cmd := constructCMD(c.CMD, s.URI, c.Aggressive)

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"log"
 	"time"
-
-	"github.com/smmit/smmbase/logger"
 )
 
 // 超时错误
@@ -94,7 +92,7 @@ func (w Work) Process(timeout int) {
 			return
 		}
 
-		logger.Debug("七牛返回链接: ", url)
+		log.Println("七牛返回链接: ", url)
 
 		// 原始返回的是字节数组, 七牛的话, 只返回链接即可
 		// wout <- out

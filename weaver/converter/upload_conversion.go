@@ -2,6 +2,7 @@ package converter
 
 import (
 	"bytes"
+	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -9,8 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/smmit/smmbase/logger"
-	"github.com/smmit/smmbase/qiniu"
 )
 
 // AWSS3 AWS S3配置
@@ -31,7 +30,7 @@ type UploadConversion struct {
 
 // uploadToS3 上传到 AWS S3
 func uploadToS3(awsConf AWSS3, b []byte) error {
-	logger.Debugf("[Converter] uploading conversion to S3 bucket '%s' with key '%s'\n", awsConf.S3Bucket, awsConf.S3Key)
+	log.Printf("[Converter] uploading conversion to S3 bucket '%s' with key '%s'\n", awsConf.S3Bucket, awsConf.S3Key)
 	st := time.Now()
 
 	region := "us-east-1"
@@ -75,7 +74,7 @@ func uploadToS3(awsConf AWSS3, b []byte) error {
 	}
 
 	et := time.Now()
-	logger.Debugf("[Converter] uploaded to S3: %s (%s)\n", awsutil.StringValue(res), et.Sub(st))
+	log.Printf("[Converter] uploaded to S3: %s (%s)\n", awsutil.StringValue(res), et.Sub(st))
 	return nil
 }
 
@@ -95,15 +94,15 @@ func (c UploadConversion) UploadAWSS3(b []byte) (bool, error) {
 // UploadQiniu 上传到七牛
 func (c UploadConversion) UploadQiniu(b []byte) (bool, string, error) {
 	st := time.Now()
+	finalkey := ""
+	// qn := qiniu.NewSmmQiniuUpload()
 
-	qn := qiniu.NewSmmQiniuUpload()
-
-	finalkey, err := qn.QiniuUploadFile(qiniu.CatMap[qiniu.TRADECENTER_CREDENTIAL_FILE], b, ".pdf")
-	if err != nil {
-		logger.Warnning("上传七牛失败: ", err.Error())
-		return false, "", err
-	}
+	// finalkey, err := qn.QiniuUploadFile(qiniu.CatMap[qiniu.TRADECENTER_CREDENTIAL_FILE], b, ".pdf")
+	// if err != nil {
+	// 	log.Println("上传七牛失败: ", err.Error())
+	// 	return false, "", err
+	// }
 	et := time.Now()
-	logger.Debugf("上传七牛耗时: %s\n", et.Sub(st))
+	log.Printf("上传七牛耗时: %s\n", et.Sub(st))
 	return true, finalkey, nil
 }

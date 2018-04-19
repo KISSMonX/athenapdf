@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"os"
 	"runtime"
@@ -12,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/getsentry/raven-go"
 	"github.com/gin-gonic/gin"
-	"github.com/smmit/smmbase/logger"
 	"gopkg.in/alexcesaro/statsd.v2"
 )
 
@@ -43,7 +43,7 @@ func statsHandler(c *gin.Context) {
 
 func conversionHandler(c *gin.Context, source converter.ConversionSource) {
 	// GC if converting temporary file
-	logger.Debug("转换资源位置 URI: ", source.URI)
+	log.Println("转换资源位置 URI: ", source.URI)
 
 	if source.IsLocal {
 		defer os.Remove(source.URI)
@@ -67,12 +67,12 @@ func conversionHandler(c *gin.Context, source converter.ConversionSource) {
 		S3Acl:        c.Query("s3_acl"),
 	}
 
-	logger.Debugf("基础配置: %+v\n", conf)
-	logger.Debugf("待转数量: %s\n", len(wq))
-	logger.Debugf("statsd client 信息: %+v\n", s)
-	logger.Debugf("sentry 信息: %v  %t\n", r, ravenOk)
-	logger.Debugf("AWSS3 配置: %+v\n", awsConf)
-	logger.Debugf("newTiming: %v", newTiming)
+	log.Printf("基础配置: %+v\n", conf)
+	log.Printf("待转数量: %d\n", len(wq))
+	log.Printf("statsd client 信息: %+v\n", s)
+	log.Printf("sentry 信息: %v  %t\n", r, ravenOk)
+	log.Printf("AWSS3 配置: %+v\n", awsConf)
+	log.Printf("newTiming: %v", newTiming)
 
 	var conversion converter.Converter
 	var work converter.Work
@@ -115,7 +115,7 @@ StartConversion:
 			"data": urlData,
 		})
 	case err := <-work.Error():
-		logger.Warnning(err)
+		log.Println(err)
 
 		// Log, and stats collection
 		if err == converter.ErrConversionTimeout {
@@ -134,7 +134,7 @@ StartConversion:
 
 		if attempts == 0 && conf.ConversionFallback {
 			s.Increment("cloudconvert")
-			logger.Debug("falling back to CloudConvert...")
+			log.Println("falling back to CloudConvert...")
 			attempts++
 			goto StartConversion
 		}
@@ -168,7 +168,7 @@ func convertByURLHandler(c *gin.Context) {
 
 	ext := c.Query("ext")
 
-	logger.Debugf("输入参数 url: %s  token: %s  扩展名: %s\n", url, token, ext)
+	log.Printf("输入参数 url: %s  token: %s  扩展名: %s\n", url, token, ext)
 
 	source, err := converter.NewConversionSource(url, token, nil, ext)
 	if err != nil {
@@ -196,7 +196,7 @@ func convertByFileHandler(c *gin.Context) {
 
 	ext := c.Query("ext")
 
-	logger.Debugf("输入参数 filename: %s  大小: %d  扩展名: %s\n", header.Filename, header.Size, ext)
+	log.Printf("输入参数 filename: %s  大小: %d  扩展名: %s\n", header.Filename, header.Size, ext)
 
 	source, err := converter.NewConversionSource("", "", file, ext)
 	if err != nil {

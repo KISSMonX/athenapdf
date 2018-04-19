@@ -1,10 +1,9 @@
 package main
 
 import (
+	"log"
 	"os"
 	"strconv"
-
-	"github.com/smmit/smmbase/logger"
 )
 
 // CloudConvert configuration.
@@ -147,7 +146,7 @@ func NewEnvConfig() Config {
 		conf.SentryDSN = sentryDSN
 	}
 
-	logger.Debugf("PDF 转换服务基础配置: %+v", conf)
+	log.Printf("PDF 转换服务基础配置: %+v", conf)
 
 	return conf
 }

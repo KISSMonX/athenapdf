@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -15,7 +16,6 @@ import (
 
 	"github.com/arachnys/athenapdf/weaver/converter"
 	"github.com/satori/go.uuid"
-	"github.com/smmit/smmbase/logger"
 )
 
 // CloudConvert 在线转换?
@@ -196,7 +196,7 @@ func (p Process) StartConversion(c Conversion) ([]byte, error) {
 
 // Convert 执行转换
 func (c CloudConvert) Convert(s converter.ConversionSource, done <-chan struct{}) ([]byte, error) {
-	logger.Debugf("[CloudConvert] converting to PDF: %s\n", s.GetActualURI())
+	log.Printf("[CloudConvert] converting to PDF: %s\n", s.GetActualURI())
 
 	var b []byte
 
@@ -239,7 +239,7 @@ func (c CloudConvert) Convert(s converter.ConversionSource, done <-chan struct{}
 				"public-read",
 			},
 		}
-		logger.Debugf("[CloudConvert] uploading conversion to S3: %s\n", c.AWSS3.S3Key)
+		log.Printf("[CloudConvert] uploading conversion to S3: %s\n", c.AWSS3.S3Key)
 	}
 
 	b, err = p.StartConversion(conv)
