@@ -10,12 +10,6 @@ import (
 	log "github.com/qiniu/x/log.v7"
 )
 
-const (
-	DOMAIN_ANHUIDA = ".anhuida.com"
-	DOMAIN_SMM     = ".smm.cn"
-	COOKIE_KEY     = "SMM_auth_token"
-)
-
 // ConversionSource contains the target resource path, and its MIME type.
 // It may contain additional metadata about the conversion source.
 type ConversionSource struct {

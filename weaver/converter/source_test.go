@@ -137,7 +137,7 @@ func TestUriSource(t *testing.T) {
 	s := new(ConversionSource)
 	ts := testutil.MockHTTPServer("", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>", false)
 	defer ts.Close()
-	err := uriSource(s, ts.URL)
+	err := uriSource(s, ts.URL, "", "", "")
 	if err != nil {
 		t.Fatalf("urisource returned an unexpected error: %+v", err)
 	}
@@ -150,7 +150,7 @@ func TestUriSource_basicAuth(t *testing.T) {
 	defer ts.Close()
 
 	// Test unauthenticated
-	err := uriSource(s, ts.URL)
+	err := uriSource(s, ts.URL, "", "", "")
 	if err != nil {
 		t.Fatalf("urisource (unauthenticated) returned an unexpected error: %+v", err)
 	}
@@ -166,7 +166,7 @@ func TestUriSource_basicAuth(t *testing.T) {
 	}
 
 	u.User = url.UserPassword("test", "test")
-	err = uriSource(s, u.String())
+	err = uriSource(s, u.String(), "", "", "")
 	if err != nil {
 		t.Fatalf("urisource (authenticated) returned an unexpected error: %+v", err)
 	}
@@ -181,7 +181,7 @@ func TestUriSource_octet(t *testing.T) {
 	mockData := "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 	ts := testutil.MockHTTPServer("application/octet-stream", mockData, false)
 	defer ts.Close()
-	err := uriSource(s, ts.URL)
+	err := uriSource(s, ts.URL, "", "", "")
 	if err != nil {
 		t.Fatalf("urisource returned an unexpected error: %+v", err)
 	}
@@ -259,7 +259,7 @@ func TestNewConversionSource(t *testing.T) {
 	mockURI := "http://this-should-not-be-used"
 	mockData := "<!DOCTYPE HTML>"
 	mockReader := strings.NewReader(mockData)
-	s, err := NewConversionSource(mockURI, "", mockReader, "")
+	s, err := NewConversionSource(mockURI, "", "", "", "", mockReader)
 	if err != nil {
 		t.Fatalf("newconversionsource returned an unexpected error: %+v", err)
 	}
@@ -269,7 +269,7 @@ func TestNewConversionSource(t *testing.T) {
 func TestNewConversionSource_remote(t *testing.T) {
 	ts := testutil.MockHTTPServer("", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>", false)
 	defer ts.Close()
-	s, err := NewConversionSource(ts.URL, "", nil, "")
+	s, err := NewConversionSource(ts.URL, "", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("newconversionsource returned an unexpected error: %+v", err)
 	}
@@ -277,7 +277,7 @@ func TestNewConversionSource_remote(t *testing.T) {
 }
 
 func TestNewConversionSource_invalidURL(t *testing.T) {
-	s, err := NewConversionSource("http://invalid-url", "", nil, "")
+	s, err := NewConversionSource("http://invalid-url", "", "", "", "", nil)
 	if err == nil {
 		t.Fatalf("expected error to be returned")
 	}
