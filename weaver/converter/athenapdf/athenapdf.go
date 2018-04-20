@@ -30,12 +30,20 @@ type AthenaPDF struct {
 // string.
 // It will set an additional '-A' flag if aggressive is set to true.
 // See athenapdf CLI for more information regarding the aggressive mode.
-func constructCMD(base string, path string, aggressive bool) []string {
+func constructCMD(base string, path string, aggressive bool, headerKV string) []string {
 	args := strings.Fields(base)
 	args = append(args, path)
 	if aggressive {
 		args = append(args, "-A")
 	}
+
+	if len(headerKV) > 0 {
+		// -H, --http-header <key:value>  add custom headers to request (default: )
+		args = append(args, "-H")
+		args = append(args, headerKV)
+	}
+
+	log.Println("最终执行完整命令: ", args)
 	return args
 }
 
@@ -43,10 +51,11 @@ func constructCMD(base string, path string, aggressive bool) []string {
 // using athenapdf CLI.
 // See the Convert method for Conversion for more information.
 func (c AthenaPDF) Convert(s converter.ConversionSource, done <-chan struct{}) ([]byte, error) {
-	log.Printf("[AthenaPDF] converting to PDF: %s\n", s.GetActualURI())
+	log.Printf("[AthenaPDF] 命令正在转换 PDF: %s\n", s.GetActualURI())
+	log.Printf("[AthenaPDF] 命令请求 headerKV: %+v\n", s.HeaderKV)
 
 	// Construct the command to execute
-	cmd := constructCMD(c.CMD, s.URI, c.Aggressive)
+	cmd := constructCMD(c.CMD, s.URI, c.Aggressive, s.HeaderKV)
 	out, err := gcmd.Execute(cmd, done)
 	if err != nil {
 		return nil, err

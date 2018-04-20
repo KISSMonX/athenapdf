@@ -1,13 +1,11 @@
 package converter
 
 import (
-	"bytes"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	log "github.com/qiniu/x/log.v7"
 )
@@ -37,7 +35,8 @@ type ConversionSource struct {
 	// IsLocal should be true if the URI relies on a local conversion strategy,
 	// and false if the target is a remote source (that does not require
 	// pre-processing).
-	IsLocal bool
+	IsLocal  bool
+	HeaderKV string
 }
 
 // readerContentType attempts to determine the content type using bytes from a
@@ -105,71 +104,44 @@ func rawSource(s *ConversionSource, body io.Reader) error {
 	return nil
 }
 
-func cookieString(cookie *http.Cookie) string {
-	var b bytes.Buffer
-	b.WriteString(cookie.Name)
-	b.WriteString("=")
-	b.WriteString(cookie.Value)
-	b.WriteString("; expires=" + cookie.Expires.Format(http.TimeFormat))
-	b.WriteString("; domain=" + cookie.Domain)
-	b.WriteString("; path=" + cookie.Path)
-	b.WriteString(";")
-	return b.String()
-}
-
-// Cookies 生成[]*http.Cookie
-func Cookies(key, value, domain string, date ...time.Time) *http.Cookie {
-	expires := time.Now()
-	if len(date) > 0 {
-		expires = date[0]
-	}
-	return &http.Cookie{
-		Name:    key,
-		Value:   value,
-		Domain:  domain,
-		Expires: expires,
-		Path:    "/",
-	}
-}
-
 // uriSource is a remote conversion strategy handler. It will attempt to fetch
 // the remote URI to determine: if it is accessible; its mime type; and
 // if it needs pre-processing (e.g. `octet-stream`).
 func uriSource(s *ConversionSource, uri, token, key, domain string) error {
 	// Fetch URL with support for cookies (to handle session-based redirects)
-	req, err := http.NewRequest("GET", uri, nil)
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", uri, nil)
+	// req.Header = http.Header{"Cookie": {key + "=" + token}}
+	// req.Header.Set("Cookie", cookie.String())
+	req.Header.Set("Cookie", key+"="+token)
+
+	log.Printf("请求详细参数: %+v\n", req)
+	response, err := client.Do(req)
+	log.Printf("响应详细信息: %+v\n", response)
 	if err != nil {
 		log.Error(err)
 	}
-
-	cookie := Cookies(key, token, domain)
-	req.AddCookie(cookie)
-
-	var client = &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Error(err)
-	}
-	if resp != nil {
-		defer resp.Body.Close()
+	if response != nil {
+		defer response.Body.Close()
 	}
 
 	// Save content locally (temporarily) if the HTTP header indicates that it
 	// is a binary stream.
 	// TODO: file restrictions / limits (e.g. size)
-	if resp.Header.Get("Content-Type") == "application/octet-stream" {
+	if response.Header.Get("Content-Type") == "application/octet-stream" {
 		// Set the OriginalURI as we are running a local conversion strategy
 		s.OriginalURI = uri
 		// Pipe HTTP response body to a temporary file via io.Reader
-		if rawSource(s, resp.Body) != nil {
+		if rawSource(s, response.Body) != nil {
 			return err
 		}
 	} else {
 		// Do not set the OriginalURI as it is NOT a local conversion
 		s.URI = uri
+		s.HeaderKV = "Cookie" + ":" + key + "=" + token // 2018年04月20日 加入用于命令的 header cookie 设置
 		// Read the first 512 bytes of the page contents into a temporary buffer
 		// so that we can determine the content type
-		t, err := readerContentType(resp.Body)
+		t, err := readerContentType(response.Body)
 		if err != nil {
 			return err
 		}
@@ -195,7 +167,7 @@ func setCustomExtension(s *ConversionSource, ext string) error {
 // of bytes. If both parameters are specified, the reader takes precedence.
 // The ConversionSource is prepared using one of two strategies: a local
 // conversion (see rawSource) or a remote conversion (see uriSource).
-func NewConversionSource(uri, token, key, domain string, body io.Reader, ext string) (*ConversionSource, error) {
+func NewConversionSource(uri, token, key, domain, ext string, body io.Reader) (*ConversionSource, error) {
 	s := new(ConversionSource)
 
 	var err error

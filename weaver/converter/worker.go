@@ -73,7 +73,7 @@ func (w Work) Process(timeout int) {
 	wurl := make(chan string, 1)
 
 	go func(w Work, done <-chan struct{}, wout chan<- []byte, werr chan<- error) {
-		// 转换
+		// NOTE: 这里转换只是用到了链接, 对于需要 cookie 和参数的是不合适的, 需要注意
 		out, err := w.converter.Convert(w.source, done)
 		if err != nil {
 			werr <- err

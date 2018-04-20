@@ -69,7 +69,6 @@ func conversionHandler(c *gin.Context, source converter.ConversionSource) {
 		S3Acl:        c.Query("s3_acl"),
 	}
 
-	log.Printf("基础配置: %+v\n", conf)
 	log.Printf("待转数量: %d\n", len(wq))
 	log.Printf("statsd client 信息: %+v\n", s)
 	log.Printf("sentry 信息: %v  %t\n", r, ravenOk)
@@ -157,36 +156,40 @@ StartConversion:
 // output of the conversion has been uploaded or it can return the output of
 // the conversion to the client (raw bytes).
 func convertByURLHandler(c *gin.Context) {
+	var token, domain, key string
 	s := c.MustGet("statsd").(*statsd.Client)
 	r, ravenOk := c.Get("sentry")
 
 	url := c.Query("url")
-	token := c.Query("token")
-	if url == "" {
-		c.AbortWithError(http.StatusBadRequest, ErrURLInvalid).SetType(gin.ErrorTypePublic)
-		s.Increment("invalid_url")
-		return
-	}
-
-	domain := c.Query("domain")
-	if domain == "" {
-		c.AbortWithError(http.StatusBadRequest, ErrDomainInvalid).SetType(gin.ErrorTypePublic)
-		s.Increment("invalid_domain")
-		return
-	}
-
-	key := c.Query("key")
-	if key == "" {
-		c.AbortWithError(http.StatusBadRequest, ErrKeyInvalid).SetType(gin.ErrorTypePublic)
-		s.Increment("invalid_key")
-		return
-	}
-
 	ext := c.Query("ext")
+	needLogin := c.Query("need_login") // 是否需要登录, 登录需要 token, cookie 之类的东西
+	if needLogin == "true" {
+		// 组建 token,
+		token = c.Query("token")
+		if url == "" {
+			c.AbortWithError(http.StatusBadRequest, ErrURLInvalid).SetType(gin.ErrorTypePublic)
+			s.Increment("invalid_url")
+			return
+		}
 
-	log.Printf("输入参数 url: %s  token: %s  扩展名: %s  域名: %s  TokenKey: %s\n", url, token, ext, domain, key)
+		domain = c.Query("domain")
+		if domain == "" {
+			c.AbortWithError(http.StatusBadRequest, ErrDomainInvalid).SetType(gin.ErrorTypePublic)
+			s.Increment("invalid_domain")
+			return
+		}
 
-	source, err := converter.NewConversionSource(url, token, key, domain, nil, ext)
+		key = c.Query("key")
+		if key == "" {
+			c.AbortWithError(http.StatusBadRequest, ErrKeyInvalid).SetType(gin.ErrorTypePublic)
+			s.Increment("invalid_key")
+			return
+		}
+	}
+
+	log.Printf("输入参数 url: %s  token: %s  扩展名: %s  域名: %s  TokenKey: %s  needLogin: %s\n", url, token, ext, domain, key, needLogin)
+
+	source, err := converter.NewConversionSource(url, token, key, domain, ext, nil)
 	if err != nil {
 		s.Increment("conversion_error")
 		if ravenOk {
@@ -214,7 +217,7 @@ func convertByFileHandler(c *gin.Context) {
 
 	log.Printf("输入参数 filename: %s  大小: %d  扩展名: %s\n", header.Filename, header.Size, ext)
 
-	source, err := converter.NewConversionSource("", "", "", "", file, ext)
+	source, err := converter.NewConversionSource("", "", "", "", ext, file)
 	if err != nil {
 		s.Increment("conversion_error")
 		if ravenOk {
